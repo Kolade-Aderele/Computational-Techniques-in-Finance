@@ -1,0 +1,354 @@
+# Thank you Professor Aaron Stevens for allowing me to post privately on Github.
+
+""" In this assignment, you will develop some functions to implement the binomial 
+option pricing algorithm, which provides a good approximation of option prices."""
+
+import math
+from a4task1 import *
+
+def get_binomial_factors(sigma, rf, div,h):
+    """Calculates the factors needed to implement the binomial calculations 
+    using the parameters sigma"""
+    x = (rf - div)*h + sigma * h**(1/2)
+    y = (rf - div)*h - sigma * h**(1/2)
+    
+    u = math.exp(x)
+    d = math.exp(y)
+    
+    return u,d
+    
+
+def get_risk_neutral_probability(sigma, rf, div, h):
+    """Calculates and returns the risk-neutral probability associated with 
+    this option’s parameters."""
+    
+    binomial_fac = get_binomial_factors(sigma, rf, div,h)
+    u = binomial_fac[0]
+    d = binomial_fac[1]
+    p = (math.exp((rf-div)*h) -d)/(u-d)
+    
+    return p
+    
+#print(get_risk_neutral_probability(0.3, 0.06, 0.0, 0.025))
+
+
+def build_binomial_stock_price_tree(s, sigma, rf, div, t, n):
+    """Builds and returns a binomial tree (a 2-d list) of simulated stock 
+    price movements"""
+    h = t/n
+    binomial_fac = get_binomial_factors(sigma, rf, div,h)
+    u = binomial_fac[0]
+    d = binomial_fac[1]
+    hello = zeros(n+1,n+1)
+    num_u = s
+    num_d =s
+    for row in range(len(hello)):
+        hello[0][0] = s
+        
+        for col in range(1, len(hello[row])):
+              
+            if hello[row][col-1] == 0 and col >= row:
+                hello[row][col-1] = 0
+                hello[row][col] = num_d*d
+                num_d = hello[row][col]
+                
+                num_u = num_d
+
+            elif hello[row][col-1] != 0 and col >= row:
+                hello[row][col] = num_u*u
+                num_u = hello[row][col]
+     
+                
+
+                
+        num_u = num_d
+
+
+    return hello
+#
+#t = build_binomial_stock_price_tree(100, 0.2, 0.04, 0.02, 1, 5)
+#print_matrix(t)
+#            
+
+
+#tree = [[0] * 5 for x in range(5)]
+#tree = build_binomial_stock_price_tree(100, 0.2, 0.04, 0.02, 1.0, 5)
+
+def print_binomial_tree(tree):
+    """Takes a single parameter (a 2-dimension list) which containts 
+    the data of the binomial tree, and creates a nicely-formatted printout."""
+    a = 0
+    
+    for row in range(len(tree)):
+
+        value_tree =[tree[row][col] for col in range(a,len(tree[row]))  if row <= col]
+        print(" ")
+        
+        print('        ' * row, end = '')
+        for val in range(len(value_tree)):
+    
+                 
+                print( '%.2f' % value_tree[val], end = '\t')
+                
+                 
+#        
+        
+       
+#print(tree)
+#print_binomial_tree(tree)        
+
+
+
+
+def build_euro_call_value_tree(s,x, sigma, rf, div, t, n):
+    """ That builds and returns a binomial option value tree for 
+    European-style call options"""
+    
+    stock_pt = build_binomial_stock_price_tree(s, sigma, rf, div, t, n)
+    
+    h = t/n
+    p = get_risk_neutral_probability(sigma, rf, div, h)
+    print(" ")
+    new_matrix =  zeros(n+1,n+1)
+
+    
+
+    matrix_rev_len = (len(new_matrix) * -1) -1
+   
+
+    
+    for row in range(len(stock_pt)): 
+
+        matrix_range = len(new_matrix)-1
+        for col in range(len(stock_pt[row])):
+            if row <= col and col == matrix_range:
+                
+                a = (max(stock_pt[row][col]-x,0))
+                new_matrix[row][col] = a
+   
+     
+    for row in range(0, matrix_rev_len , -1):
+        matrix_len = len(new_matrix)
+        matrix_range = matrix_len-1
+        c_t = matrix_range
+
+        for col in range(matrix_range, 0, -1):
+
+            if c_t > 0:
+                c_t -=1
+                 
+            row_u = row
+            row_d = row + 1
+                
+            c_u = new_matrix[row_u][col]
+            c_d = new_matrix[row_d][col]
+                
+            x_a = -(rf-div)*h
+            x_b = ((p*c_u)+((1-p)*c_d))
+            new_matrix[row][c_t] = math.exp(x_a)* x_b
+            
+            if matrix_len > 1:
+                matrix_len -= 1
+                
+        matrix_range -=1
+                 
+    return new_matrix
+    
+      
+#    
+    
+##
+#build_euro_call_value_tree(25, 22, 0.25, 0.05, 0.03, 1, 2)
+#print_binomial_tree(t)
+print_binomial_tree( build_euro_call_value_tree(90, 100, 0.3, 0.06, 0.02, 0.25, 10))
+#
+
+def euro_call_value(s, x, sigma, rf, div, t, n):
+    """ Calculates and returns the current value for European-style 
+    call option"""
+    euro_call = build_euro_call_value_tree(s,x, sigma, rf, div, t, n)
+    eu_call_value = euro_call[0][0]
+    return eu_call_value
+
+#print(euro_call_value(25, 22, 0.20, 0.05, 0.03, 0.25, 5))
+
+
+def build_euro_put_value_tree(s, x, sigma, rf, div, t, n):
+    """ Builds and returns a binomial option value tree for European-style 
+    put options."""
+    stock_pt = build_binomial_stock_price_tree(s, sigma, rf, div, t, n)
+    
+    h = t/n
+    p = get_risk_neutral_probability(sigma, rf, div, h)
+    print(" ")
+    new_matrix =  zeros(n+1,n+1)
+
+    
+
+    matrix_rev_len = (len(new_matrix) * -1) -1
+   
+
+    
+    for row in range(len(stock_pt)): 
+
+        matrix_range = len(new_matrix)-1
+        for col in range(len(stock_pt[row])):
+            if row <= col and col == matrix_range:
+                
+                a = max(x-stock_pt[row][col],0)
+                new_matrix[row][col] = a
+   
+     
+    for row in range(0, matrix_rev_len , -1):
+        matrix_len = len(new_matrix)
+        matrix_range = matrix_len-1
+        c_t = matrix_range
+
+        for col in range(matrix_range, 0, -1):
+
+            if c_t > 0:
+                c_t -=1
+                 
+            row_u = row
+            row_d = row + 1
+                
+            c_u = new_matrix[row_u][col]
+            c_d = new_matrix[row_d][col]
+                
+            x_a = -(rf-div)*h
+            x_b = ((p*c_u)+((1-p)*c_d))
+            new_matrix[row][c_t] = math.exp(x_a)* x_b
+            
+            if matrix_len > 1:
+                matrix_len -= 1
+                
+        matrix_range -=1
+                 
+    return new_matrix
+
+#t = build_euro_put_value_tree(100, 100, 0.3, 0.06, 0.04, 1.0, 10)
+#print_binomial_tree(t)
+
+def euro_put_value(s, x, sigma, rf, div, t, n):
+    """Calculates and returns the current value for European-style 
+    put option."""
+    euro_put = build_euro_put_value_tree(s, x, sigma, rf, div, t, n)
+    eu_put_value = euro_put[0][0]
+    return eu_put_value
+
+#print(euro_put_value(25, 30, 0.30, 0.05, 0.03, 0.5, 10))
+
+def build_amer_put_value_tree(s, x, sigma, rf, div, t, n):
+    """Builds and returns a binomial option value tree for American-style 
+    put options."""
+    stock_pt = build_binomial_stock_price_tree(s, sigma, rf, div, t, n)
+    print
+    h = t/n
+    p = get_risk_neutral_probability(sigma, rf, div, h)
+    print(" ")
+    new_matrix =  zeros(n+1,n+1)
+
+    matrix_rev_len = (len(new_matrix) * -1) -1
+   
+    for row in range(len(stock_pt)): 
+
+        matrix_range = len(new_matrix)-1
+        for col in range(len(stock_pt[row])):
+            if row <= col and col == matrix_range:
+                a = max((x-stock_pt[row][col]),0)
+                new_matrix[row][col] = a 
+                
+    
+    for row in range(0, matrix_rev_len , -1):
+        matrix_len = len(new_matrix)
+        matrix_range = matrix_len-1
+        c_t = matrix_range
+
+        for col in range(matrix_range, 0, -1):
+
+            if c_t > 0:
+                c_t -=1
+                 
+            row_u = row
+            row_d = row + 1
+                
+            c_u = new_matrix[row_u][col]
+            c_d = new_matrix[row_d][col]
+                
+            x_a = -(rf-div)*h
+            x_b = ((p*c_u)+((1-p)*c_d))
+            am_price = (math.exp(x_a)* x_b)
+            diff_strike_stock = (x-stock_pt[row][col-1])
+            
+            new_matrix[row][c_t] = max(am_price,diff_strike_stock)
+            
+            if matrix_len > 1:
+                matrix_len -= 1
+             
+        matrix_range -=1
+                 
+    return new_matrix
+    
+
+#print_binomial_tree(build_amer_put_value_tree(100, 100, 0.3, 0.06, 0.04, 1.0, 10))  
+
+def amer_put_value(s, x, sigma, rf, div, t, n):
+    """Calculates and returns the current value for American-style 
+    put option."""
+    amer_put_value = build_amer_put_value_tree(s, x, sigma, rf, div, t, n)
+    am_put_value = amer_put_value[0][0]
+    return am_put_value
+
+#print(amer_put_value(25, 30, 0.30, 0.05, 0.03, 0.5, 100))
+
+def build_amer_call_value_tree(s, x, sigma, rf, div, t, n):
+    stock_pt = build_binomial_stock_price_tree(s, sigma, rf, div, t, n)
+    print
+    h = t/n
+    p = get_risk_neutral_probability(sigma, rf, div, h)
+    print(" ")
+    new_matrix =  zeros(n+1,n+1)
+
+    matrix_rev_len = (len(new_matrix) * -1) -1
+   
+    for row in range(len(stock_pt)): 
+
+        matrix_range = len(new_matrix)-1
+        for col in range(len(stock_pt[row])):
+            if row <= col and col == matrix_range:
+                a = max(stock_pt[row][col]-x,0)
+                new_matrix[row][col] = a 
+                
+    
+    for row in range(0, matrix_rev_len , -1):
+        matrix_len = len(new_matrix)
+        matrix_range = matrix_len-1
+        c_t = matrix_range
+
+        for col in range(matrix_range, 0, -1):
+
+            if c_t > 0:
+                c_t -=1
+                 
+            row_u = row
+            row_d = row + 1
+                
+            c_u = new_matrix[row_u][col]
+            c_d = new_matrix[row_d][col]
+                
+            x_a = -(rf-div)*h
+            x_b = ((p*c_u)+((1-p)*c_d))
+            am_price = (math.exp(x_a)* x_b)
+            diff_strike_stock = (stock_pt[row][col-1]-x)
+            
+            new_matrix[row][c_t] = max(am_price,diff_strike_stock)
+            
+            if matrix_len > 1:
+                matrix_len -= 1
+#                print("am_price = %.2f" %am_price, "diff_strike_stock = %.2f" %diff_strike_stock) 
+        matrix_range -=1
+                 
+    return new_matrix
+    
+
+print_binomial_tree(build_amer_call_value_tree(90, 100, 0.3, 0.06, 0.02, 0.25, 10))  
