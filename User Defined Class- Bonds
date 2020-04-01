@@ -1,0 +1,227 @@
+# Thank you professor Aaron Stevens for granting me the permission to post classwork on Github privately.
+
+""" In this assignment, you will develop a class to model a bond investment instrument. The bond has a maturity
+value (in dollars), maturity time (in years), coupon rate, coupon (compounding) frequency, current price, and
+yield to maturity (YTM). To keep price and YTM in synch, any changes in price will force the YTM to recalculate, 
+and changes to YTM will force the price to recalculate."""
+
+class Bond:
+    """ Creates a class definition for Bond"""
+    
+    def __init__(self, maturity_value, maturity_time, coupon_rate=0, coupon_frequency=2):
+        """Initialize data members for the Bond‘s price. Data members are
+        maturity_value(in dollars), maturity_time(in years), coupon_rate
+        (as annualized percertage rate), coupon_frequency(in periods per year)"""
+        
+        self.__maturity_value = maturity_value
+        self.__maturity_time = maturity_time
+        self.__coupon_rate = coupon_rate
+        self.__coupon_frequency = coupon_frequency
+        self.__ytm = coupon_rate
+        self.__price = maturity_value
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the Bond object."""
+        
+        return "{:.2f}".format(self.__maturity_value) + '-maturity  %d'%(self.__maturity_time)  + '-year, ' + "{:.4f}".format(self.__coupon_rate*100)+ "% bond, price= $" + "{:.2f}".format(self.__price) + ' ytm= ' + "{:.4f}".format(self.__ytm*100) + "% duration= "  + "{:.4f}".format(self.get_duration()) +  " convexity= "  + "{:.4f}".format(self.get_convexity()) 
+    
+    def get_maturity_value(self):
+        """ Accessor method. Retrieves the maturity value"""
+        
+        return self.__maturity_value
+    
+    def get_maturity_time(self):
+        """ Accessor method. Retrieves the  maturity time"""
+        
+        return self.__maturity_time
+    
+    def get_coupon_frequency(self):
+        """" Accessor method. Retrieves the coupon frequency"""
+        
+        return self.__coupon_frequency
+    
+    def get_coupon_rate(self):
+        """ Accessor method. Retrieves the coupon rate"""
+        
+        return self.__coupon_rate
+    
+    def get_coupon_amount(self):
+        """ Accessor method. Calculates the coupon amount"""
+        
+        coupon_amount = (self.get_coupon_rate())/self.get_coupon_frequency()*self.get_maturity_value()
+        return coupon_amount
+    
+    def get_price(self):
+        """ Accessor method. Retrieves the of price"""
+        
+        return self.__price
+    
+    def get_yield_to_maturity(self):
+        """ Accessor method. Retrieves the  yield to maturity"""
+        
+        return self.__ytm
+    
+    def get_pmt_times(self):
+        """ Accessor method. Calculates the payment times"""
+        
+        pmt_times = [self.get_maturity_time  + 1 for self.get_maturity_time in range(self.__maturity_time*self.__coupon_frequency)]
+        return pmt_times
+    
+    def get_cashflows(self):
+        """ Accessor method. Calculates the cashflows"""
+        
+        cashflows = [((self.get_coupon_rate()/self.get_coupon_frequency())*self.get_maturity_value()) for self.get_maturity_time  in range(len(self.get_pmt_times())-1)] + [((self.get_coupon_rate()/self.get_coupon_frequency())*self.get_maturity_value()) + self.get_maturity_value()]
+        return cashflows
+    
+    def get_discount_factors(self):
+        """ Accessor method. Calculates the discount factors"""
+        
+        discount_factors = [(1/(1+(self.get_yield_to_maturity()/self.get_coupon_frequency()))**self.get_maturity_time) for self.get_maturity_time in self.get_pmt_times()]
+        return discount_factors
+
+    def calculate_price(self):    
+        """ Helper method. Calculates the bond price """            
+        self.__price = sum([a * b for a,b in zip(self.get_discount_factors(), self.get_cashflows())])
+        return self.__price   
+    
+    def set_yield_to_maturity(self, new_ytm) :
+        """ Sets the yield to maturity to a value then calculates the 
+        new bond price"""
+        
+        self.__ytm = new_ytm
+        self.__price = self.calculate_price()
+        
+        return self.__ytm, self.__price
+       
+    def set_price(self, price):
+        """ Sets the price of a bond"""
+        
+        self.__new_price = price
+        return self.__new_price
+    
+    def calculate_yield_to_maturity(self, accuracy = 0.0001):
+        """Using the set price of a bond, this method calculatess the
+        yield to maturity"""
+        
+        lowertest_r = 0
+        uppertest_r = 1
+        self.__ytm = (uppertest_r + lowertest_r)/2
+        price_ytm = self.calculate_price()
+        diff = price_ytm - self.__new_price
+    
+        while abs(diff) > accuracy:
+            price_ytm = self.calculate_price()
+            diff =  price_ytm - self.__new_price
+        
+            if diff < 0: 
+                uppertest_r = self.__ytm
+                self.__ytm =  (uppertest_r + lowertest_r)/2
+            
+            else:
+                lowertest_r = self.__ytm
+                self.__ytm = (uppertest_r + lowertest_r)/2 
+        return self.__ytm
+    
+    def get_duration(self):
+        """" Calculates the duration of a bond"""
+        
+        self.__duration = (1/self.get_coupon_frequency()) * (sum([a * b* c for a,b,c in zip(self.get_pmt_times(),self.get_discount_factors(),self.get_cashflows())])/self.calculate_price())
+        return self.__duration
+    
+    def get_convexity(self):
+        """ Calculates the convexity of a bond"""
+        
+        df = self.get_discount_factors()
+        bc = self.get_cashflows()
+        cft = self.get_pmt_times()
+        bp = self.calculate_price()
+        self.__convexity = (1/bp) *(sum([a * b* c* (c+1) for a,b,c in zip(df,bc,cft)])/((1 + (self.get_yield_to_maturity()/self.get_coupon_frequency()))**2))*(1/self.get_coupon_frequency()**2)
+        return self.__convexity    
+        
+
+class BondPortfolio:
+    """ Creates a class for a bond portfolio"""
+
+    def __init__(self):
+        """ This method initializes a new BondPortfolio object of this class. 
+        The BondPortfolio classmust have a data member of type list, that 
+        should be initialized to an empty list"""
+        
+        data = []
+        assert(type(data)== list), "data must be a list!"
+        self.__data = data
+        
+    def __repr__(self):
+        """ This method should return a string representation of the 
+        BondPortfolio, and will also show some details about the portfolio’s 
+        contents and risk characteristics."""
+        
+        len_data = len(self.__data) 
+        s = '\n'
+        for row in self.__data:
+            s += str(row) + '\n'
+        layout_value = "\nPortfolio value:             $" + "{:.2f}".format(self.get_value())
+        layout_ytm = "\nPortfolio yield to maturity: " + "{:.4f}".format(self.get_yield_to_maturity()*100) +"%"
+        layout_duration = "\nPortfolio duration:          " + "{:.2f}".format(self.get_duration())
+        layout_convexity = "\nPortfolio convexity:         " + "{:.2f}".format(self.get_convexity())
+        layout = "BondPortfolio contains %d bonds: \n" %(len_data) + s
+        return layout + layout_value + layout_ytm + layout_duration + layout_convexity
+            
+    def add_bond(self, b):
+        """This method will add one Bond to this portfolio."""
+        
+        assert(type(b)== Bond), "b must be a bond"
+        self.__data.append(b)
+            
+    def rem_bond(self, b):
+        """This method will remove one Bond to this portfolio."""
+        
+        assert(type(b)== Bond), "b must be a bond"
+        self.__data.remove(b)
+        
+    def get_value(self):
+        """This method will calculate the value of this portfolio."""
+        
+        self.__portfolio_value = 0
+        for row in range(len(self.__data)):
+            self.__portfolio_value += self.__data[row].get_price()
+        return self.__portfolio_value
+    
+    def get_yield_to_maturity(self):
+        """This method will calculate the yield to maturity of this 
+        portfolio."""
+        
+        self.__portfolio_ytm = 0
+        for row in range(len(self.__data)):
+            weight = self.__data[row].get_price()/self.get_value()
+            self.__portfolio_ytm += weight * self.__data[row].get_yield_to_maturity()
+        return self.__portfolio_ytm
+    
+    def get_duration(self):
+        """This method will calculate the duration of this portfolio."""
+        
+        self.__portfolio_duration = 0
+        for row in range(len(self.__data)):
+            weight = self.__data[row].get_price()/self.get_value()
+            self.__portfolio_duration += weight * self.__data[row].get_duration() 
+        return self.__portfolio_duration
+    
+    def get_convexity(self):
+        """This method will calculate the convexity of this portfolio."""
+        
+        self.__portfolio_convexity = 0
+        for row in range(len(self.__data)):
+            weight = self.__data[row].get_price()/self.get_value()
+            self.__portfolio_convexity += weight * self.__data[row].get_convexity() 
+        return self.__portfolio_convexity
+    
+    def shift_ytm(self, delta_ytm):
+        """The method will take a parameter delta_ytm (which could 
+        be positive or negative) and apply this change to all bonds 
+        in the portfolio."""
+        
+        for row in range(len(self.__data)):
+            self.__data[row].set_yield_to_maturity(self.__data[row].get_yield_to_maturity() + delta_ytm)
+            
+        return self.__data[row].set_yield_to_maturity
+        
