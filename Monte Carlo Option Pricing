@@ -1,0 +1,337 @@
+# Thank you professor Aaron Stevens for granting me the permission to post class work on Github privately.
+
+"""  In this assignment, you will implement some classes to simulate stock returns and price movements (task 1) 
+to assist with pricing path-dependent options (task 2). In the first task, you will implement a base class to 
+encapsulate the fundamental data members and common calculations used to simulate stock returns using Monte Carlo 
+simulation. In the second task, you will create subclasses to implement several option pricing algorithms."""
+
+import numpy as np
+import random
+import math
+import matplotlib.pyplot as plt
+
+class  MCStockSimulator:
+    """ Encapsulates the data and methods required to simulate stock returns 
+    and values. This class will serve as a base class for option pricing 
+    classes"""
+       
+    def __init__(self, s, t, r, sigma, nper_per_year):
+        """Initialize data members for the option‘s price. Data members are
+        s (the current stock price in dollars), t (the option maturity time 
+        in years), sigma (the annualized standard deviation of returns),          
+        rf (the annualized risk free rate of return), nper_per_year 
+        (the number of discrete time periods per year)"""
+        
+        self.s = s
+        self.t = t
+        self.r = r
+        self.sigma = sigma
+        self.nper_per_year = nper_per_year
+    
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object.""" 
+        
+        answer = "StockSimulator  (s = $%.2f, t = %.2f (years), r = %.2f, sigma = %.2f, nper_per_year = %d)"%(self.s, self.t, self.r, self.sigma, self.nper_per_year) 
+        return answer
+    
+    def generate_simulated_stock_returns(self):
+        """Generate and return a np.array (numpy array) containing a sequence 
+        of simulated stock returns over the time period t"""
+
+        gen_returns = int(self.t * self.nper_per_year)
+        result = np.zeros(gen_returns)        
+        
+        dt = 1/self.nper_per_year
+
+        for simulated_return in range(len(result)):
+            z = np.random.normal()
+
+            result[simulated_return] = (self.r - ((self.sigma **2)/2))* dt + z * self.sigma * (dt ** 0.5)
+        
+        return result
+            
+    def generate_simulated_stock_values(self):
+        """Generate and return a np.array (numpy array) containing a sequence 
+        of stock values, corresponding to a random sequence of stock return."""
+    
+        gen_value = int(self.t * self.nper_per_year)
+        result = np.zeros(gen_value)
+        result[0] = self.s
+        rate = self.generate_simulated_stock_returns()
+
+        for simulated_value in range(1,len(result)):
+            
+            result[simulated_value] = result[simulated_value-1] * math.exp(rate[simulated_value-1])
+        
+        last_value = [result[-1]*math.exp(rate[-1])]
+        new_result = np.append(result, last_value)
+        return new_result
+    
+    def plot_simulated_stock_values(self, num_trials = 1):
+        """ Generate a plot of of num_trials series of simulated stock 
+        returns. num_trials is an optional parameter; if it is not supplied, 
+        the default value of 1 will be used"""
+        
+        dt = 1/self.nper_per_year
+
+
+        for num in range(num_trials):
+           x = np.arange(0, self.t, dt)
+
+           values_y = self.generate_simulated_stock_values() 
+           y = np.delete(values_y, 0)
+           graph = plt.plot(x, y) 
+
+        return graph
+       
+import a8task1
+import numpy as np
+import math
+
+class MCStockOption(MCStockSimulator):
+    """Inherits from MCStockSimulator. This class will encapsulate the idea of   
+    a Monte Carlo stock option, and will contain some additional data members
+    (that are not part of class MCStockSimulator and are required to run
+    stock-price simulations and calculate the option’s payoff."""
+    
+    
+    
+    def __init__(self, s, x, t, r, sigma, nper_per_year, num_trials):
+        """Initializes two additional data members for the option‘s price. 
+        previously inherited five members from the MCStockSimulator.
+        The two additional members are x (the option’s exercise price) and 
+        num_trials (the number of trials to run when calculating the value of 
+        this option)"""
+        
+        MCStockSimulator.__init__(self, s, t, r, sigma, nper_per_year)
+        self.x = x
+        self.num_trials = num_trials
+    
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object."""
+        
+        answer = "MCStockOption, s = %.2f, x = %.2f , t = %.2f (years), r = %.2f, sigma = %.2f, nper_per_year = %d, num_trials = %d"%(self.s, self.x ,self.t, self.r, self.sigma, self.nper_per_year, self.num_trials) 
+        return answer        
+    
+    def value(self):
+        """Return the value of the option. This method cannot be concretely 
+        implemented in this base class. Hence it should return 0"""
+        
+        print("Base class MCStockOption has no concrete implementation of .value().")
+        return 0
+        
+    def stderr(self):
+        """ Return the standard error of this option’s value. The standard 
+        error is calculated as stdev / sqrt(num_trials), where stdev is the 
+        standard deviation of the values obtained from many trials. The 
+        standard error can only be calculated after running some trials, and as
+        such it cannot be calculated until we implement the value(self) method 
+        in the concrete subclasses. Hence it should return 0"""
+        
+        if 'stdev' in dir(self):
+            
+            return self.stdev / math.sqrt(self.num_trials)
+        return 0
+
+class MCEuroCallOption(MCStockOption):
+    """Inherits from the base class MCStockOption."""
+    
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object."""
+        
+        call_answer = "MCEuroCallOption, s = %.2f, x = %.2f , t = %.2f (years), r = %.2f, sigma = %.2f, nper_per_year = %d, num_trials = %d"%(self.s, self.x ,self.t, self.r, self.sigma, self.nper_per_year, self.num_trials) 
+        return call_answer    
+    
+    def value(self):
+        """Return the value of the option."""
+
+        
+        trials = []
+        for num in range(self.num_trials):
+            previous_value = self.generate_simulated_stock_values()
+            eu_call_result = max(previous_value[-1]-self.x, 0) * math.exp((-self.r) *self.t)
+            trials.append(eu_call_result)
+        self.mean = np.mean(trials)
+        self.stdev = np.std(trials)
+
+        return eu_call_result
+        
+    def stderr(self):
+        """ Return the standard error of this option’s value. The standard 
+        error is calculated as stdev / sqrt(num_trials), where stdev is the 
+        standard deviation of the values obtained from many trials."""
+        
+        if 'stdev' in dir(self):
+            return self.stdev / math.sqrt(self.num_trials)
+        return 0
+
+class MCEuroPutOption(MCStockOption):
+    """Inherits from the base class MCStockOption."""
+    
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object."""
+        
+        put_answer = "MCEuroPutOption, s = %.2f, x = %.2f , t = %.2f (years), r = %.2f, sigma = %.2f, nper_per_year = %d, num_trials = %d"%(self.s, self.x ,self.t, self.r, self.sigma, self.nper_per_year, self.num_trials) 
+        return put_answer   
+    
+
+    def value(self):
+        """Return the value of the option."""
+        
+        trials = []
+        for num in range(self.num_trials):
+            previous_value = self.generate_simulated_stock_values()
+            eu_put_result = max(self.x - previous_value[-1], 0) * math.exp((-self.r) *self.t)
+            trials.append(eu_put_result)
+        self.mean = np.mean(trials)
+        self.stdev = np.std(trials)
+
+        return eu_put_result   
+        
+    def stderr(self):
+        """ Return the standard error of this option’s value. The standard 
+        error is calculated as stdev / sqrt(num_trials), where stdev is the 
+        standard deviation of the values obtained from many trials.""" 
+        
+        if 'stdev' in dir(self):
+            return self.stdev / math.sqrt(self.num_trials)
+        return 0  
+    
+
+class MCAsianCallOption(MCStockOption):
+    """Inherits from the base class MCStockOption."""
+    
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object."""
+        
+        call_answer = "MCAsianCallOption, s = %.2f, x = %.2f , t = %.2f (years), r = %.2f, sigma = %.2f, nper_per_year = %d, num_trials = %d"%(self.s, self.x ,self.t, self.r, self.sigma, self.nper_per_year, self.num_trials) 
+        return call_answer    
+    
+    def value(self):
+        """Return the value of the option."""
+        
+        trials = []
+        for num in range(self.num_trials):
+            previous_value = self.generate_simulated_stock_values()
+            asian_call_result = max(np.average(previous_value)-self.x, 0) * math.exp((-self.r) *self.t)
+            trials.append(asian_call_result)
+        self.mean = np.mean(trials)
+        self.stdev = np.std(trials)
+
+        return asian_call_result
+
+        
+    def stderr(self):
+        """ Return the standard error of this option’s value. The standard 
+        error is calculated as stdev / sqrt(num_trials), where stdev is the 
+        standard deviation of the values obtained from many trials."""
+        
+        if 'stdev' in dir(self):
+            return self.stdev / math.sqrt(self.num_trials)
+        return 0   
+    
+class MCAsianPutOption(MCStockOption):
+    """Inherits from the base class MCStockOption."""
+    
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object."""
+        
+        put_answer = "MCAsianPutOption, s = %.2f, x = %.2f , t = %.2f (years), r = %.2f, sigma = %.2f, nper_per_year = %d, num_trials = %d"%(self.s, self.x ,self.t, self.r, self.sigma, self.nper_per_year, self.num_trials) 
+        return put_answer   
+    
+
+    def value(self):
+        """Return the value of the option."""
+        
+        trials = []
+        for num in range(self.num_trials):
+            previous_value = self.generate_simulated_stock_values()
+            asian_put_result = max(self.x - np.average(previous_value), 0) * math.exp((-self.r) *self.t)
+            trials.append(asian_put_result)
+        self.mean = np.mean(trials)
+        self.stdev = np.std(trials)
+
+        return asian_put_result   
+        
+    def stderr(self):
+        """ Return the standard error of this option’s value. The standard 
+        error is calculated as stdev / sqrt(num_trials), where stdev is the 
+        standard deviation of the values obtained from many trials."""        
+
+        if 'stdev' in dir(self):
+            return self.stdev / math.sqrt(self.num_trials)
+        return 0  
+    
+
+class MCLookbackCallOption(MCStockOption):
+    """Inherits from the base class MCStockOption."""
+    
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object."""
+        
+        call_answer = "MCLookbackCallOption, s = %.2f, x = %.2f , t = %.2f (years), r = %.2f, sigma = %.2f, nper_per_year = %d, num_trials = %d"%(self.s, self.x ,self.t, self.r, self.sigma, self.nper_per_year, self.num_trials) 
+        return call_answer    
+    
+    def value(self):
+        """Return the value of the option."""
+        
+        trials = []
+        for num in range(self.num_trials):
+            previous_value = self.generate_simulated_stock_values()
+            lookback_call_result = max(np.max(previous_value)-self.x, 0) * math.exp((-self.r) *self.t)
+            trials.append(lookback_call_result)
+        self.mean = np.mean(trials)
+        self.stdev = np.std(trials)
+
+        return lookback_call_result
+    
+        
+        
+
+        
+    def stderr(self):
+        """ Return the standard error of this option’s value. The standard 
+        error is calculated as stdev / sqrt(num_trials), where stdev is the 
+        standard deviation of the values obtained from many trials.""" 
+        
+        if 'stdev' in dir(self):
+            return self.stdev / math.sqrt(self.num_trials)
+        return 0   
+    
+class MCLookbackPutOption(MCStockOption):
+    """Inherits from the base class MCStockOption."""
+        
+    def __repr__(self):
+        
+        put_answer = "MCLookbackPutOption, s = %.2f, x = %.2f , t = %.2f (years), r = %.2f, sigma = %.2f, nper_per_year = %d, num_trials = %d"%(self.s, self.x ,self.t, self.r, self.sigma, self.nper_per_year, self.num_trials) 
+        return put_answer   
+    
+
+    def value(self):
+        """Return the value of the option."""
+        
+        trials = []
+        for num in range(self.num_trials):
+            previous_value = self.generate_simulated_stock_values()
+            lookback_put_result = max(self.x - np.min(previous_value), 0) * math.exp((-self.r) *self.t)
+            trials.append(lookback_put_result)
+        self.mean = np.mean(trials)
+        self.stdev = np.std(trials)
+
+        return lookback_put_result   
+        
+    def stderr(self):
+        """ Return the standard error of this option’s value. The standard 
+        error is calculated as stdev / sqrt(num_trials), where stdev is the 
+        standard deviation of the values obtained from many trials."""
+        
+        if 'stdev' in dir(self):
+            return self.stdev / math.sqrt(self.num_trials)
+        return 0  
