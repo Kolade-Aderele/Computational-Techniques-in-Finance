@@ -1,0 +1,181 @@
+""" In this assignment, you will write several functions to process a list of numbers and 
+ generate the following descriptive statistics: mean, variance, standard deviation, covariance, 
+ correlation, and simple regression. Next, you will write a program to process a data file 
+ containing stock price information, calculate stock returns, and generate descriptive statistics 
+ about the stocks’ historical rates of return. Finally, you will create a variance-covariance matrix of the stocks’ returns."""
+
+ # Thank you Professor Aaron Stevens for granting me the permission to post code on Github privately.
+
+
+def mean(values):
+    """that takes as a parameter a list of numbers, and calculates 
+        and returns the mean of those values."""
+    result = []
+    for a in values:
+        sum_result = sum(values)    
+        n = len(values)
+        mean_values = (sum_result/n)
+    return mean_values
+
+def variance(values):
+     """takes as a parameter a list of numbers, and calculates and 
+     returns the population variance of the values in that list."""  
+     diff_square = [(a- mean(values))**2 for a in values]
+                
+     return mean(diff_square)
+
+
+def std_dev(values):
+   """takes as a parameter a list of numbers, and calculates 
+   and returns the population standard deviation of the values 
+   in that list.""" 
+   standard = variance(values) ** 0.5
+   return standard
+    
+
+def covariance(x,y):
+    """ takes as parameters two lists of values, and calculates 
+    and returns the population covariance for those two lists."""
+    assert len(x) == len(y), "The two lists are not of equal length"
+   
+   
+    diff_x = [a - mean(x) for a in x]
+   
+    diff_y = [b - mean(y) for b in y]
+    
+    product_diffxy = [a * b for a,b in zip(diff_x, diff_y)]
+    return mean(product_diffxy)
+    
+def correlation(x,y):
+    """takes as parameters two lists of values, and calculates 
+    and returns the correlation coefficient between these data series."""
+    corr_xy = covariance(x,y)/(std_dev(x)*std_dev(y))
+    return corr_xy
+
+def rsq(x,y):
+    """takes as parameters two lists of values, and calculates 
+    and returns the square of the correlation between those two data series, 
+    which is a measure of the goodness of fit measure to 
+    explain variation in y as a function of variation of x."""
+    rsq_xy = correlation(x,y)**2
+    return rsq_xy
+
+def simple_regression(x,y):
+    """takes as parameters two lists of values, and calculates and 
+    returns the regression coefficients between these data series. 
+    The function returns a list containing two values: the intercept 
+    and regression coefficients, α and β."""
+    beta_xy = covariance(x,y)/ (variance(x))
+    
+    alpha_xy = mean(y) - (beta_xy * mean(x))
+    return  alpha_xy, beta_xy
+    
+def calc_returns(prices):
+
+    """This function will process a list of stock prices and 
+    calculate the periodic returns. The function should assume 
+    that the oldest price  and latest price ."""    
+    
+    return_rate = [ (float(prices[a]-prices[a-1])/prices[a-1]) for a in range(len(prices)) if a != 0]
+    
+    return return_rate
+ 
+      
+    
+    
+def process_stock_prices_csv(filename):
+    """This function will process a data file containing stock price data, 
+    and return a list of stock prices."""
+    file_name_prices = []
+    file_name = open(filename, "r")
+    first_line = file_name.readline()
+    del first_line
+    for line in file_name:
+       line = line[:-1]
+       hello = line.split(',')
+       cash = float(hello[-2])
+       file_name_prices += [cash]
+    
+    file_name.close()
+    return file_name_prices
+
+    
+def stock_report(filenames):
+    """The function takes a parameter filenames which is a 
+    list of CSV filenames with stock price history.This program will 
+    process several CSV files to obtain stock prices (for the same time periods) 
+    for 3 different stocks, as well as the stock market index,
+    and produce several outputs."""    
+
+    for line in filenames:
+          
+          a = filenames[0]
+          b = filenames[1]
+          c = filenames[2]
+          d = filenames[3]
+          
+          prices_a = process_stock_prices_csv(a)
+          prices_b = process_stock_prices_csv(b)
+          prices_c = process_stock_prices_csv(c)
+          prices_d = process_stock_prices_csv(d)
+          
+          values_a = calc_returns(prices_a)
+          values_b = calc_returns(prices_b)
+          values_c = calc_returns(prices_c)
+          values_d = calc_returns(prices_d)
+          
+          mean_a = mean(values_a) * (250)
+          mean_b = mean(values_b) * (250)
+          mean_c = mean(values_c) * (250)
+          mean_d = mean(values_d) * (250)
+          
+          stdev_a = std_dev(values_a) * (250**0.5)
+          stdev_b = std_dev(values_b) * (250**0.5)
+          stdev_c = std_dev(values_c) * (250**0.5)
+          stdev_d = std_dev(values_d) * (250**0.5)
+       
+          
+          covariance_ad = covariance(values_a,values_d)
+          covariance_bd = covariance(values_b,values_d)
+          covariance_cd = covariance(values_c,values_d)
+          
+          
+          correlation_ad = correlation(values_a,values_d)        
+          correlation_bd = correlation(values_b,values_d)
+          correlation_cd = correlation(values_c,values_d)
+          
+          
+          
+          
+          rsq_ad = rsq(values_a,values_d)
+          rsq_bd = rsq(values_b,values_d)
+          rsq_cd = rsq(values_c,values_d)
+        
+          beta_ad = covariance_ad/ (variance(values_a))
+          beta_bd = covariance_bd/ (variance(values_b))
+          beta_cd = covariance_cd/ (variance(values_c))
+          
+          alpha_ad = mean(values_d) - (beta_ad * mean(values_a))
+          alpha_bd = mean(values_d) - (beta_bd * mean(values_b))
+          alpha_cd = mean(values_d) - (beta_cd * mean(values_c))
+          
+          final_mean = "Mean:   %.4f     %.4f   %.4f     %.4f" %(mean_a, mean_b, mean_c, mean_d)
+          final_stdev = "StDev:   %.4f     %.4f   %.4f     %.4f" %(stdev_a, stdev_b, stdev_c, stdev_d)
+          final_covar = "Covar:   %.4f     %.4f   %.4f" %(covariance_ad, covariance_bd, covariance_cd)
+          final_Correl= "Correl:   %.4f     %.4f   %.4f" %(correlation_ad, correlation_bd, correlation_cd)
+          final_rsq = "R-SQ:   %.4f     %.4f   %.4f" %(rsq_ad, rsq_bd, rsq_cd)
+          final_beta = "Beta:   %.4f     %.4f   %.4f" %(beta_ad, beta_bd, beta_cd) 
+          final_alpha = "Alpha:   %.4f     %.4f   %.4f" %(alpha_ad, alpha_bd, alpha_cd) 
+          
+    print("Descriptive statistics for daily stock returns:")
+    print("Symbol: ", "     AAPL", "    TSLA", "    AMZN", "     SPY")
+    print(final_mean)
+    print(final_stdev)
+    print(final_covar)
+    print(final_Correl)
+    print(final_rsq)
+    print(final_beta)
+    print(final_alpha)
+    
+    
+    # Thank you Professor Aaron Stevens for granting me the permission to post code on Github privately.
