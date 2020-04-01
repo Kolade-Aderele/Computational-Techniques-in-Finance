@@ -1,0 +1,225 @@
+""" In this assignment, you will implement several basic linear algebra operations. 
+The underlying storage of data elements will be as a 2-dimensional list within Python. Each operation will
+ be implemented as its own a function, and you will be responsible for running unit tests on each function 
+ to ensure it works correctly. As always, you must write a concise and descriptive doc string for each function, 
+ and include comments as necessary throughout the code."""
+
+# Thank you Professor Aaron Stevens for granting the authorization to post privately on Github.
+
+
+ def print_matrix(m, label = ''):
+    """Takes two parameters, m which is a 2-dimension list (the matrix) 
+    and label (a string), and creates a nicely-formatted printout."""
+    print("[", end= "")
+    for row in range(len(m)):
+        print("[", end= "")
+        for col in range(len(m[row])):
+            if col != len(m[row])-1:            
+                print('%.2f' % m[row][col], end=', ')
+            else:
+                print('%.2f' % m[row][col], end='')
+        print("]", end= "")
+        if row != len(m[row])-1:
+            print("\n")
+        
+    print("]", end= "")
+
+
+
+
+def zeros(n,m):
+    """ Creates and returns an n * m matrix containing all zeros."""
+    
+    return [[0] * m for i in range(n) ]
+        
+ 
+
+
+
+def identity_matrix(n):
+    """Creates and returns an n * n identity matrix containing the value of 
+    1 along the diagonal."""
+    
+    result = zeros(n,n)
+        
+    for row in range(n):
+        for col in range(n):
+            if row == col:
+                result[row][col] = 1.00
+            else:
+                result[row][col] = 0.00
+    return result
+
+
+
+
+A = [[1,2,3],[4,5,6]]
+
+def transpose(m):
+    """Creates and returns the transpose of a matrix."""
+    
+    new_matrix = []
+    
+    for col in range(len(m[0])):
+        temp = []
+        for row in range(len(m)):
+            temp.append(m[row][col])
+        
+        new_matrix.append(temp)
+    return new_matrix
+
+
+
+
+A = [[3, 0, 2], [2, 0, -2], [0, 1, 1]]
+
+def swap_rows(m, src, dest):
+    """Perform the elementary row operation that exchanges two rows within 
+    the matrix"""
+    
+    assert src < len(m) and dest < len(m)    
+    x= m[dest]
+    m[dest] = m[src]
+    m[src] = x   
+    
+   
+    
+
+def mult_row_scalar(m, row, scalar):
+    """"Perform the elementary row operation that multiplies all values
+    in the row row by the numerical value scalar"""
+    
+    new_m= []
+    
+    assert row < len(m)
+    for col in range(len(m[row])):
+        m[row][col] = m[row][col] * scalar
+
+    for sub_list in m:
+        new_m += [sub_list]
+    
+    
+
+
+
+def add_row_into(m, src, dest):
+    """Performs the elementary-row operation to add the src 
+    row into the dest row."""
+    
+    assert src < len(m) and dest < len(m)  
+    
+    for col in range(len(m[src])):
+         
+        m[dest][col] += m[src][col]
+    return m
+
+def add_matrices(a,b):
+    """Takes as parameters 2 matrices (2d lists) and returns a 
+    new matrix which is the element-wise sum of the matrices A and B."""
+    assert(len(A[0]) == len(B[0])), "incompatible dimensions!"
+    
+    
+    for row in range(len(a)):
+        for col in range(len(a[row])):
+            
+            a[row][col] += b[row][col]
+    return a
+            
+
+
+
+A = [[3,0,2,1],[2,0,-2,3]]
+
+
+def mult_scalar(m, s = int or float):
+    """Takes as a parameter a 2-dimension list M (the matrix) and 
+    a scalar value s (i.e., an int or float), and returns a 
+    new matrix containing the values of the original matrix multiplied 
+    by the scalar value."""
+    
+    new_m = []
+    
+    for row in range(len(m)):
+        for col in range(len(m[row])):
+            m[row][col] = m[row][col] * s
+    for sub_list in m:
+        new_m += [sub_list] 
+    return new_m
+
+
+def sub_matrices(a,b):
+    """Takes as parameters 2 matrices (2d lists) and returns a new matrix 
+    which is the element-wise difference of the matrices A and B."""
+
+
+    mult_scalar(b,-1)
+    matrix_new = add_matrices(a,b)
+    
+    return matrix_new
+
+
+
+
+A = [[1,2,3],[4,5,6]]
+B = [[3,2],[4,1],[5,0]]
+
+def dot_product(m, n):
+    """Takes as parameters two matrices M and N, and returns a new matrix 
+    containing dot product of these matrices."""
+#    n = transpose(n)
+    
+     
+#    assert len(m) == len(n), "incompatible dimensions!" 
+    return_matrix = zeros(len(m),len(n[0]))
+    print(return_matrix)
+    for i in range(0,len(return_matrix)):
+        
+        
+        for j in range(0,len(return_matrix[i])):
+            h = 0
+            for k in range(0, len(n)):
+                print("computing the value for i and k", m[i][k], ", ",n[k][j] )
+                h += m[i][k] * n[k][j] 
+                
+#                print(h)
+                return_matrix[i][j] = h
+#                print(sum)
+        
+        
+        
+    return return_matrix
+
+print(dot_product(A,B))
+
+def bond_price(fv, c, n, m, r):
+    D = bond_cashflows(fv, c, n,m)
+    CF = discount_factors(r, n, m)
+    
+    return sum([a*b for a,b in zip(D, CF)])
+    
+print(bond_price(1000, 0.08, 5, 2, 0.09))
+
+
+CF = [[105,0,0],[6,106,0],[7,7,107]]
+P = [[99.5], [101.25], [100.35]]
+
+def bootstrap(cashflows, prices):
+    
+#    [[1/col for col in range(1,len(cashflows))] for row in range(len(cashflows))]
+#    return [[x**-1 for x in y if x] for y in cashflows]  
+#    D = ([a/b for a,b in zip(P, CF)])
+    D = [[c* (1/a) for a,c in zip(b,d) if a !=0]  for b ,d in zip(CF,P) ]  
+    
+#    for a in range(len(cashflows)):
+#        for c in range(len(cashflows[a])):
+#            if cashflows[a][c] != 0:
+#                cashflows[a][c] = 1/cashflows[a][c]
+#
+#            
+#            
+#    D = dot_product(cashflows, prices)
+    return D
+print("")
+print(bootstrap(P, CF))
+        
+        
