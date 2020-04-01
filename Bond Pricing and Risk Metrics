@@ -1,0 +1,203 @@
+def cashflow_times(n,m):
+    """Develop the list of the times at which a bond makes coupon payments
+    , with n years and m coupon payments per year.""" 
+
+    return [n + 1 for n in range(n*m)]
+
+def discount_factors(r,n,m):
+    """Calculate and return a list of discount factors for a given annualized 
+    interest rate r, for n years, and m discounting periods per year."""
+    
+    return [(1/(1+(r/m))**n) for n in cashflow_times(n,m)]
+
+def bond_cashflows(fv, c, n, m):
+    """Calculate and return a list of cashflows for a bond specified by the 
+    parameters."""
+    
+    return [((c/m)*fv) for n in range(len(cashflow_times(n,m))-1)] + [((c/m)*fv) + fv]
+
+def bond_price(fv, c, n, m, r):
+    """Calculate and return the price of a bond."""
+    
+    return sum([a * b for a,b in zip(discount_factors(r,n,m),bond_cashflows(fv, c, n, m))]) 
+
+def bond_yield_to_maturity(fv, c, n, m, price):
+    """Calculate the annualized yield_to_maturity on a bond."""    
+    
+    lowertest_r = 0
+    uppertest_r = 1
+    r = (uppertest_r + lowertest_r)/2
+    accuracy = 0.001
+    price_ytm = bond_price(fv, c, n, m, r)
+    diff =  price_ytm - price 
+    
+    
+    while abs(diff) > accuracy:
+        price_ytm = bond_price(fv, c, n, m, r)
+        diff =  price_ytm - price 
+        print(diff,",", price_ytm)
+        if diff < 0: 
+            uppertest_r = r
+            r =  (uppertest_r + lowertest_r)/2
+             
+        else:
+            lowertest_r = r
+            r = (uppertest_r + lowertest_r)/2
+            
+            
+    return r
+
+def bond_duration(fv, c, n, m, r):
+    """ Calculate and return the duration metric for a bond."""
+    return (1/m) * (sum([a * b* c for a,b,c in zip(cashflow_times(n,m),discount_factors(r,n,m),bond_cashflows(fv, c, n, m))])/bond_price(fv, c, n, m, r))
+
+def bond_convexity(fv, c, n, m, r):
+    """ Calculate and return the convexity metric for a bond."""
+    df = discount_factors(r,n,m)
+    bc = bond_cashflows(fv, c, n, m)
+    cft = cashflow_times(n,m)
+    return (1/bond_price(fv, c, n, m, r)) *(sum([a * b* c* (c+1) for a,b,c in zip(df,bc,cft)])/((1 + (r/m))**2))*(1/m**2)
+
+
+def estimate_change_in_price(fv, c, n, m, r):
+    """Estimate the change in a bond’s price in response to change in the interest rate."""
+    
+    price_of_bond_p1 = bond_price(fv, c, n, m, r)
+    
+    rate = 0
+    message = "Estimate of change in price for a 3-year coupon bond at par:"
+    heading = "rate         price             dp          pctchg          e_pctchgD"
+    print(message)
+    print(heading)
+    for rate in range(-10, 11):
+        r_max = r + (rate/10000)
+        price_of_bond_p2 = bond_price(fv, c, n, m, r_max)
+        change_in_price = price_of_bond_p2 - price_of_bond_p1
+        pct_change_in_bond_price = ((price_of_bond_p2 - price_of_bond_p1)/price_of_bond_p1) * 100
+        est_change_in_price = -(bond_duration(fv, c, n, m, r)/(1+(r/m)))*(r_max-r)
+        est_change_in_price_2 = (-(bond_duration(fv, c, n, m, r)/(1+(r/m)))*(r_max-r)) + (0.5*bond_convexity(fv, c, n, m, r) * (r_max-r)**2)
+        
+    
+        finding_a = "%.4f"%(r_max) + "%    "
+        finding_b = "$  " + "%.2f    "%price_of_bond_p2
+        finding_c = "$  " + "%.2f          "%change_in_price
+        finding_d = "%.4f"%pct_change_in_bond_price + "%         "
+        finding_e = "%.4f"%est_change_in_price_2 + "% "
+        findings = finding_a+finding_b+ finding_c+finding_d+finding_e
+        print(findings)
+
+def collect_bids(filename):
+    """Process the data file containing the bids."""
+    file_name_bids = []
+    file_name = open(filename, "r")
+    first_line = file_name.readline()
+    del first_line
+
+    for line in file_name:
+       
+        line = line[:-1]
+        lane = line.split(',')
+        file_name_bids.append(lane[0:3])
+   
+    return file_name_bids
+
+bids = collect_bids(filename)
+
+def print_bids(bids):
+    """Process the a of bids, and produce a beautifully-formatted 
+    table of the bids. In your function, you will process a list 
+    containing bids one line at a time."""
+    message = "Bid ID   " + "        Bid Amount       " + "        Price"
+    print(message)
+    for line in bids:
+        lane = line[0:3]
+        
+        for item in lane:
+            v = lane[0]
+            w = int(lane[1])
+            x = float(lane[2])
+       
+        
+        output = "%s    "%v + "   $  " + "       %5d"%w + "     $       " +"  %.3f"%x
+        
+        print(output)
+        
+
+def find_winning_bids(bids, total_offering_fv, c, n, m):
+    """Processes a list of bids and determine which are successful in the 
+    auction."""
+
+    price_per_bond = 100     
+    bids.sort(key = lambda x: x[2])
+    bids.reverse()
+    
+    message_1 = "Here are all of the bids, sorted by price descending:"
+    print(message_1)
+    print_bids(bids)
+  
+    bid_count = 0
+    message_2 = "The auction is for $%.2f of bonds"%total_offering_fv
+    print(message_2)
+    
+    amount = 0
+    
+    fv = int(total_offering_fv)
+    for lane in bids:
+        bid_am = int(lane[1])
+        
+        amount_remaining =  fv - bid_am
+        fv = amount_remaining 
+      
+        
+        if  amount_remaining  > 0 and bid_am < amount_remaining :
+            
+            lane[1] = bid_am
+            bid_count += 1
+            
+        elif amount_remaining  > 0 and bid_am > amount_remaining :
+            
+            lane[1] = amount_remaining 
+            bid_count += 1
+            clearing_price = float(lane[2])
+        else:
+            a = 0
+            lane[1] = a
+        
+        
+        
+    
+        
+    ytm = bond_yield_to_maturity(price_per_bond, c, n, m, clearing_price)
+    message_3 = "%d bids were successful in the auction."%bid_count 
+    message_4 = "The auction clearing price was $%.3f, i.e., YTM is %.6f per year"%(clearing_price,ytm) 
+    message_5 = "Here are the results for all bids:"
+           
+    print(message_3)
+    
+    print(message_4)
+    
+    print(message_5)
+    
+    print_bids(bids)
+    
+if __name__ == '__main__':
+
+    # read in the bids
+    bids = collect_bids("/Users/kolad/OneDrive/Desktop/FE459/bond_bids.csv")
+    print("Here are all the bids:")
+    print_bids(bids)
+    print()
+
+    # process the bids in an auction of $500,000 of 5-year 3% semi-annual coupon bonds
+    processed_bids = find_winning_bids(bids, 500000, 0.03, 5, 2)
+
+if __name__ == '__main__':
+
+    # read in the bids
+    bids = collect_bids("/Users/kolad/OneDrive/Desktop/FE459/bond_bids.csv")
+    print("Here are all the bids:")
+    print_bids(bids)
+    print()
+
+    # process the bids in an auction of $1,400,000 of 5-year 3.25% semi-annual coupon bonds
+    processed_bids = find_winning_bids(bids, 1400000, 0.0325, 5, 2)
