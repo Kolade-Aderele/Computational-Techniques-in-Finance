@@ -1,0 +1,196 @@
+# Thank you professor Aaron Stevens for allowing me to post our class projects on Github privately.
+
+""" In this assignment, you will implement some user-defined classes to assist with option pricing 
+using the Black-Scholes formula. To do so, you will implement a base class to encapsulate the fundamental 
+data members and common calculations used by both call and put options, and then create subclasses to 
+implement call- or put-specific features."""
+
+
+from scipy.stats import norm
+import numpy as np
+import math
+
+class BSOption:
+    """ Encapsulates the data required to do Black-Scholes option pricing formula."""
+    
+    
+    def __init__(self, s, x, t, sigma, rf, div = 0):
+        """Initialize data members for the option‘s price. Data members are
+        s (the current stock price in dollars), x (the option strike price),
+        t (the option maturity time in years), sigma (the annualized standard 
+        deviation of returns), rf (the annualized risk free rate of return),
+        div (the annualized dividend rate; assume continuous dividends rate)"""
+        
+        self.s = s
+        self.x = x
+        self.t = t
+        self.sigma = sigma
+        self.rf = rf
+        self.div = div
+        
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object."""
+        
+        answer = "s = $ %.2f, x = $%.2f, t = %.2f (years), sigma = %.3f, rf = %.3f, div = %.2f"%(self.s, self.x, self.t, self.sigma, self.rf, self.div)
+        return answer
+    
+    def d1(self):
+        """ Factors used to build the Black-Scholes formula """
+        
+        numerator_p1 = (np.log(self.s/self.x))  
+        numerator_p2 = (((self.rf - self.div + (0.5* ((self.sigma)**2)))*self.t))
+        result_numerator = numerator_p1 + numerator_p2
+        result_denominator = self.sigma * (self.t**0.5)
+        d1_result = result_numerator / result_denominator
+        return d1_result
+    
+    def d2(self):
+        """ Factors used to build the Black-Scholes formula """
+        
+        d2_result = self.d1() - self.sigma * (self.t**0.5)
+        return d2_result
+    
+    def nd1(self):
+        """ Factors used to build the Black-Scholes formula. The methods nd1() 
+        and nd2() correspond to the expressions N(d1) and N(d2), which are
+         the normal cumulative probability density of d1 and d2 respectively."""
+         
+        nd1_result = norm.cdf(self.d1())
+        return nd1_result
+    
+    def nd2(self):
+        """ Factors used to build the Black-Scholes formula. The methods nd1() 
+        and nd2() correspond to the expressions N(d1) and N(d2), which are
+         the normal cumulative probability density of d1 and d2 respectively."""        
+        nd2_result = norm.cdf(self.d2())
+        return nd2_result
+
+        
+    def value(self):
+        """ Calculates the value of the Put Option. For now it shall return 0"""
+        
+        print("Cannot calculate value for base class BSOption.")
+        return 0
+    def delta(self):
+        """ The delta of an option is helpful to create a hedging portfolio to
+        offset the option’s price risk. For now it shall return 0"""
+        
+        print("Cannot calculate value for base class BSOption.")
+        return 0
+
+class BSEuroCallOption(BSOption):
+    """ Inherits from the base class BSOPtion and implements the pricing 
+    algorithm for a European-style call option. This new class will have a 
+    constructor that takes all of the same parameters, as BSOption, in the 
+    same order, and initializes the base-class object appropriately."""
+    
+    def __init__(self, s, x, t, sigma, rf, div = 0):
+        BSOption.__init__(self, s, x, t, sigma, rf, div = 0)
+        
+    def value(self):       
+        """ Calculates the value of the Call Option. """
+        
+        
+        first_part = self.s * math.exp((-self.div)*self.t) * self.nd1()
+        second_part = self.x * math.exp((-self.rf)* self.t) * self.nd2()
+        eu_call_result = first_part - second_part
+        return eu_call_result
+    
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object."""
+        
+        answer_p1 = "BSEuroCallOption, value = $%.2f, \n"%(self.value()) 
+        answer_p2 = "parameters = (s = $ %.2f, x = $%.2f, t = %.2f (years), sigma = %.3f, rf = %.3f, div = %.2f) "%(self.s, self.x, self.t, self.sigma, self.rf, self.div)
+        return answer_p1 + answer_p2
+    
+    def delta(self):
+        """ The delta of an option is helpful to create a hedging portfolio to
+        offset the option’s price risk."""
+        
+        call_result = math.exp(-self.div * self.t) * self.nd1()
+        return call_result
+
+class BSEuroPutOption(BSOption):
+    """ Inherits from the base class BSOPtion and implements the pricing 
+    algorithm for a European-style put option. This new class will have a 
+    constructor that takes all of the same parameters, as BSOption, in the 
+    same order, and initializes the base-class object appropriately."""
+    
+    def __init__(self, s, x, t, sigma, rf, div):
+        BSOption.__init__(self, s, x, t, sigma, rf, div)
+        
+    def value(self):
+        """ Calculates the value of the Put Option"""
+        
+        first_part = self.x * math.exp((-self.rf)* self.t) * (1- self.nd2())
+        second_part = self.s * math.exp(-self.div*self.t) * (1- self.nd1())
+        eu_put_result = first_part - second_part
+        return eu_put_result
+    
+    def __repr__(self):
+        """ This method will return a beautifully-formatted string 
+        representation of the option object."""
+        
+        answer_p1 = "BSEuroPutOption, value = $%.2f, \n"%(self.value()) 
+        answer_p2 = "parameters = (s = $ %.2f, x = $%.2f, t = %.2f (years), sigma = %.3f, rf = %.3f, div = %.2f) "%(self.s, self.x, self.t, self.sigma, self.rf, self.div)
+        return answer_p1 + answer_p2
+
+    def delta(self):
+        """ The delta of an option is helpful to create a hedging portfolio to
+        offset the option’s price risk."""
+        
+        put_result = ((-math.exp(-(self.div * self.t))) * ( 1 - self.nd1()))
+        return put_result  
+   
+
+def generate_option_value_table( s, x, t, sigma, rf, div):
+    """ Will generate a printout to illustrate the change in option prices with
+    respect to the change in the underlying stock price."""
+    
+    print(BSEuroCallOption(s, x, t, sigma, rf, div))
+    print(BSEuroPutOption(s, x, t, sigma, rf, div))
+    print("Change in option values w.r.t. change in stock price: \n" + "price       call value  put value   call delta  put delta")
+    for r in range(s-10, s+11):
+        call_s = BSEuroCallOption(r, x, t, sigma, rf, div)
+        put_s = BSEuroPutOption(r, x, t, sigma, rf, div)
+        call_s = call_s.value()
+        put_s = put_s.value()
+        call_delta = BSEuroCallOption(r, x, t, sigma, rf, div).delta() 
+        put_delta = BSEuroPutOption(r, x, t, sigma, rf, div).delta()
+        format_answer = "$   %.2f   $   %.2f   $   %.2f   %.4f       %.4f"%(r, call_s, put_s, call_delta, put_delta) 
+        print(format_answer)
+        
+        
+
+def calculate_implied_volatility(option, value):
+    """ Calculates the implied volatility of an observed option. """
+    lowertest_r = 0
+    uppertest_r = 1
+    r = (uppertest_r + lowertest_r)/2
+    accuracy = 0.002
+    option.sigma = r
+    new_value = option.value()
+    
+    diff =  new_value - value 
+    
+    
+    while abs(diff) > accuracy:
+        
+        new_value = option.value()
+        diff =  new_value - value
+        print("sigma = ",option.sigma, "value = " ,option.value(), "diff =", diff )
+        if diff > 0: 
+            uppertest_r = r
+            r =  (uppertest_r + lowertest_r)/2
+            option.sigma = r
+            
+        else:
+            lowertest_r = r
+            r = (uppertest_r + lowertest_r)/2
+            option.sigma = r
+            
+    return option.sigma
+        
+ 
