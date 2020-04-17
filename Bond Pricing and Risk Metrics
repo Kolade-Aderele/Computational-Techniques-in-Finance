@@ -70,7 +70,7 @@ def estimate_change_in_price(fv, c, n, m, r):
     print(message)
     print(heading)
     for rate in range(-10, 11):
-        r_max = r + (rate/10000)
+        r_max = r + (rate/1000)
         price_of_bond_p2 = bond_price(fv, c, n, m, r_max)
         change_in_price = price_of_bond_p2 - price_of_bond_p1
         pct_change_in_bond_price = ((price_of_bond_p2 - price_of_bond_p1)/price_of_bond_p1) * 100
