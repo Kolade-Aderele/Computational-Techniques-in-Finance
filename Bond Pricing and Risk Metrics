@@ -35,7 +35,7 @@ def bond_yield_to_maturity(fv, c, n, m, price):
     while abs(diff) > accuracy:
         price_ytm = bond_price(fv, c, n, m, r)
         diff =  price_ytm - price 
-        print(diff,",", price_ytm)
+
         if diff < 0: 
             uppertest_r = r
             r =  (uppertest_r + lowertest_r)/2
@@ -128,42 +128,45 @@ def find_winning_bids(bids, total_offering_fv, c, n, m):
     auction."""
 
     price_per_bond = 100     
-    bids.sort(key = lambda x: x[2])
+    bids.sort(key = lambda x: (x[2],x[1]))
     bids.reverse()
     
     message_1 = "Here are all of the bids, sorted by price descending:"
     print(message_1)
     print_bids(bids)
   
-    bid_count = 0
+    
     message_2 = "The auction is for $%.2f of bonds"%total_offering_fv
     print(message_2)
     
-    amount = 0
-    
+
+    bid_count = 0
+
     fv = int(total_offering_fv)
+    list_of_amount_remaining = []
     for lane in bids:
+
         bid_am = int(lane[1])
-        
+        clearing_price = float(lane[2])
         amount_remaining =  fv - bid_am
-        fv = amount_remaining 
+        fv = amount_remaining
+        list_of_amount_remaining.append(amount_remaining)
+
       
-        
-        if  amount_remaining  > 0 and bid_am < amount_remaining :
+        for amount in range(len(list_of_amount_remaining)):
+            if  amount_remaining  > 0 and bid_am < amount_remaining :
             
-            lane[1] = bid_am
-            bid_count += 1
-            
-        elif amount_remaining  > 0 and bid_am > amount_remaining :
-            
-            lane[1] = amount_remaining 
-            bid_count += 1
-            clearing_price = float(lane[2])
-        else:
-            a = 0
-            lane[1] = a
-        
-        
+                lane[1] = bid_am
+                bid_count += 1
+
+            elif amount_remaining < 0 and list_of_amount_remaining[amount-1] > 0 :
+                
+                lane[1] = abs(amount_remaining)
+                bid_count += 1
+                clearing_price = float(lane[2])
+            elif amount_remaining < 0:
+                    a = 0
+                    lane[1] = a
         
     
         
